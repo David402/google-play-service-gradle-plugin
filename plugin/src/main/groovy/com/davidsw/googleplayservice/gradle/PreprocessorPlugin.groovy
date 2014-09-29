@@ -10,14 +10,12 @@ class PreprocessorPlugin implements Plugin<Project> {
     private PlayServicesDsl playServices;
     def EXPLODED_AAR_DIR
     def EXPLODED_PLAY_SERVICE_AAR_DIR
+    def GOOGLE_PLAY_SERVICES_VERSION
 
     def void apply(Project project) {
         println "[Plugin] GooglePlayServicePreprocessorPlugin"
-
-        // println "buildDir: " + project.buildDir
         EXPLODED_AAR_DIR = "${project.buildDir}/intermediates/exploded-aar"
-        EXPLODED_PLAY_SERVICE_AAR_DIR = EXPLODED_AAR_DIR + "/" + GOOGLE_PLAY_SERVICES_NESTED_PATH + "/" + GOOGLE_PLAY_SERVICES_VERSION;
-        // println "EXPLODED_AAR_DIR: " + EXPLODED_AAR_DIR
+        this.project = project
         playServices = project.extensions.create('playServices', PlayServicesDsl, project)
 
         def stripTaskName = "stripPlayServices"
@@ -38,19 +36,17 @@ class PreprocessorPlugin implements Plugin<Project> {
     }
 
     def GOOGLE_PLAY_SERVICES_NESTED_PATH = "com.google.android.gms/play-services"
-    def GOOGLE_PLAY_SERVICES_VERSION = "5.0.77"
-
 
     def PLAY_SERVICES_FILENAME="classes.jar"
     def PLAY_SERVICES_TEMP_DIR="google-play-services-temp"
     def PLAY_SERVICES_NESTED_PATH="com/google/android/gms"
     def PLAY_SERVICES_OUTPUT_FILE="google-play-services-STRIPPED.jar"
 
-    def STRIP_CONFIG_FILE = "strip.conf"
-    def STRIP_SCRIPT_FILE = "strip_play_services.sh"
-
     private void stripPlayServices() {
-        println "[Plugin StripPlayServices] run in ${EXPLODED_AAR_DIR}/${GOOGLE_PLAY_SERVICES_NESTED_PATH}/${GOOGLE_PLAY_SERVICES_VERSION}"
+        GOOGLE_PLAY_SERVICES_VERSION = playServices.getVersion();
+        EXPLODED_PLAY_SERVICE_AAR_DIR = EXPLODED_AAR_DIR + "/" + GOOGLE_PLAY_SERVICES_NESTED_PATH + "/" + GOOGLE_PLAY_SERVICES_VERSION;
+//        println "EXPLODED_AAR_DIR: " + EXPLODED_AAR_DIR
+//        println "[Plugin StripPlayServices] run in ${EXPLODED_AAR_DIR}/${GOOGLE_PLAY_SERVICES_NESTED_PATH}/${GOOGLE_PLAY_SERVICES_VERSION}"
 
         unJar();
         removeUnselectedComponents();
@@ -64,6 +60,7 @@ class PreprocessorPlugin implements Plugin<Project> {
         if (tempDir.exists()) {
             deleteFile(tempDir);
         }
+        tempDir.mkdirs();
         copyFile(new File(EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + PLAY_SERVICES_FILENAME),
                 new File(tempDirPath + "/" + PLAY_SERVICES_FILENAME));
 
@@ -79,7 +76,6 @@ class PreprocessorPlugin implements Plugin<Project> {
     private void removeUnselectedComponents() {
         String tempDirPath = EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + PLAY_SERVICES_TEMP_DIR;
         List<String> components = playServices.getComponents();
-        File configFile = new File(EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + STRIP_CONFIG_FILE);
         File tempDir = new File(tempDirPath + "/" + PLAY_SERVICES_NESTED_PATH);
         if (!tempDir.isDirectory()) {
             println "destDir (" + tempDir.getAbsolutePath() + ") is not a directory"

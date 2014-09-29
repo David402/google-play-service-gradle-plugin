@@ -3,7 +3,8 @@ package com.davidsw.googleplayservice.gradle;
 import org.gradle.api.*;
 
 class PlayServicesDsl {
-    private final Project project
+    private final Project project;
+    private String version;
     private List<String> componentList;
 
     PlayServicesDsl(Project theProject) {
@@ -14,6 +15,10 @@ class PlayServicesDsl {
         }
     }
 
+    public String getVersion() {
+        return version;
+    }
+
     public List<String> getComponents() {
         return componentList;
     }
@@ -21,6 +26,7 @@ class PlayServicesDsl {
     // -- DSL Methods ------------------------------------------------------------------------------
 
     void version(final String version = '5.0.+') {
+        this.version = version;
         project.dependencies {
             compile "com.google.android.gms:play-services:$version"
         }
