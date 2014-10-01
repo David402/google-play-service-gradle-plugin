@@ -22,12 +22,12 @@ class PreprocessorPlugin implements Plugin<Project> {
         project.configure(project) {
             if(it.hasProperty("android")) {
                 project.task(stripTaskName) << {
-                    println "Prepare to execute stripPlayServices"
+//                    println "Prepare to execute stripPlayServices"
                     stripPlayServices()
                 }
                 tasks.whenTaskAdded { theTask ->
                     if (theTask.name.startsWith('preDex')) {
-                        println "found preDex task -> " + theTask.name
+//                        println "found preDex task -> " + theTask.name
                         theTask.dependsOn(stripTaskName)
                     }
                 }
@@ -65,12 +65,12 @@ class PreprocessorPlugin implements Plugin<Project> {
                 new File(tempDirPath + "/" + PLAY_SERVICES_FILENAME));
 
         // Extract archive
-        println "Extracting archive, please wait.."
+//        println "Extracting archive, please wait.."
         ProcessBuilder pb = new ProcessBuilder("jar", "xf", "${PLAY_SERVICES_FILENAME}");
         pb.directory(new File(tempDirPath))
         // println "[Plugin StripPlayServices] current working directory: " + pb.directory().absolutePath
         pb.start().waitFor()
-        println "Extracted."
+//        println "Extracted."
     }
 
     private void removeUnselectedComponents() {
