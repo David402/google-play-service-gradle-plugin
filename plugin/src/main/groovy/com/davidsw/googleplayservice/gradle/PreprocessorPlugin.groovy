@@ -97,13 +97,16 @@ class PreprocessorPlugin implements Plugin<Project> {
         pb.directory(new File(tempDirPath));
         pb.start().waitFor();
 
+        // delete old classes.jar and copy stripped one to destination
+//        println "delete " + EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + PLAY_SERVICES_FILENAME
+        deleteFile(new File(EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + PLAY_SERVICES_FILENAME));
+//        println "copy from " + tempDirPath + "/" + PLAY_SERVICES_OUTPUT_FILE + " to " + EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + PLAY_SERVICES_FILENAME
         copyFile(new File(tempDirPath + "/" + PLAY_SERVICES_OUTPUT_FILE),
-                new File(EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + PLAY_SERVICES_OUTPUT_FILE));
+                new File(EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + PLAY_SERVICES_FILENAME));
     }
 
     private cleanup() {
         deleteFile(new File(EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + PLAY_SERVICES_TEMP_DIR));
-        deleteFile(new File(EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + PLAY_SERVICES_FILENAME));
     }
 
     private boolean isSelectedCompoment(String name) {
