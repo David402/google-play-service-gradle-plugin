@@ -17,28 +17,17 @@ apply plugin: 'release'
 dependencies {
     compile gradleApi()
     compile localGroovy()
-
-    testCompile 'junit:junit:4.11'
 }
-
-//group = 'com.davidsw.googleplayservice.gradle'
-// looks odd, but pulls the version from the property defined in gradle.properties
-//version = project.VERSION_NAME
-//group = GROUP
-//artifactId = project.artifactId
-
-ext.archivesBaseName = 'playservice-plugin'
-ext.isSnapshot = VERSION_NAME.endsWith("-SNAPSHOT")
 
 configurations {
     includeInJar
 }
 
-install {
-    repositories.mavenInstaller {
-        pom.version = VERSION_NAME
-        pom.artifactId = POM_ARTIFACT_ID
-    }
+install.repositories.mavenInstaller {
+    pom.groupId = GROUP
+    pom.version = version
+    pom.artifactId = POM_ARTIFACT_ID
+    pom.project(pomConfiguration)
 }
 
 
@@ -63,19 +52,8 @@ artifacts {
 }
 
 signing {
-    required { isReleaseVersion() && gradle.taskGraph.hasTask("uploadArchives") }
-    //println "isReleaseBuild: " + isReleaseBuild()
-    //required = !isReleaseBuild() && gradle.taskGraph.hasTask(":uploadArchives")
-    //println "required=${required}"
-    //secretKeyRingFile="/Users/davidliu/.gnupg/secring.gpg"
+    required { isReleaseBuild() && gradle.taskGraph.hasTask("uploadArchives") }
     sign configurations.archives
-}
-
-// Only *require* signing if we are uploading a non snapshot version
-gradle.taskGraph.whenReady { taskGraph ->
-    tasks.withType(org.gradle.plugins.signing.Sign).all {
-        required = isReleaseBuild() && taskGraph.hasTask(":uploadArchives")
-    }
 }
 
 gradle.taskGraph.whenReady { taskGraph ->
@@ -83,54 +61,36 @@ gradle.taskGraph.whenReady { taskGraph ->
         // Use Java 6's console to read from the console (no good for
         // a CI environment)
         Console console = System.console()
-        console.printf "\n\nWe have to sign some things in this build." +
-                       "\n\nPlease enter your signing details.\n\n"
-
-        def id = console.readLine("PGP Key Id: ")
-        def file = console.readLine("PGP Secret Key Ring File (absolute path): ")
-        def password = console.readPassword("PGP Private Key Password: ")
-
-        allprojects { ext."signing.keyId" = id }
-        allprojects { ext."signing.secretKeyRingFile" = file }
-        allprojects { ext."signing.password" = password }
-
-        console.printf "\nThanks.\n\n"
+        def env = System.getenv()
+        def id = env['SIGNING_PGP_KEYID']
+        def file = env['SIGNING_PGP_SECRET_KEY_RING_FILE']
+        def password = env['SIGNING_PGP_PASSWORD']
+        allprojects { ext."signing.keyId" = id ?: console.readLine("PGP Key Id: ") }
+        allprojects { ext."signing.secretKeyRingFile" = file ?: console.readLine("PGP Secret Key Ring File (absolute path): ") }
+        allprojects { ext."signing.password" = password ?: console.readPassword("PGP Private Key Password: ")}
     }
 }
 
+afterEvaluate { project ->
+    uploadArchives {
+        repositories.mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-install.repositories.mavenInstaller {
-    pom.project(pomConfiguration)
-    //signing.secretKeyRingFile="/Users/davidliu/.gnupg/secring.gpg"
-    //println "signing.secretKeyRingFile=" + signing.secretKeyRingFile
-    //if (signing.signatory) {
-    //    beforeDeployment { signing.signPom(it) }
-    //}
-}
+            pom.groupId = GROUP
+            pom.artifactId = POM_ARTIFACT_ID
+            pom.version = version
 
-uploadArchives {
-    repositories.mavenDeployer {
-    	beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-        pom.artifactId = POM_ARTIFACT_ID
-
-        //if (signing.signatory) {
-        //    beforeDeployment { signPom(it) }
-        //}
-        name = 'mavenCentralReleaseDeployer'
-        repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
-        		Console console = System.console()
-        		console.printf "\n\nWe have to sign some things in this build." +
-                       "\n\nPlease enter your signing details.\n\n"
-
-        		def sonatypeUsername = console.readLine("Sonatype Username: ")
-        		def sonatypePassword = console.readPassword("Sonatype Password: ")
-
-            authentication(userName: sonatypeUsername, password: sonatypePassword)
-            releases(updatePolicy: 'always')
-            snapshots(updatePolicy: 'always')
+            name = 'mavenCentralReleaseDeployer'
+            repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
+                authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
+                releases(updatePolicy: 'always')
+                snapshots(updatePolicy: 'always')
+            }
+            snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots/') {
+                authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
+            }
+            pom.project(pomConfiguration)
         }
-        pom.project(pomConfiguration)
     }
 }
 
@@ -143,32 +103,43 @@ release {
  */
 def getPomConfiguration() {
     return {
-        name 'Gradle Google Play Service Plugin'
-        packaging 'jar'
-        description 'A Gradle plugin for include play service lib and do customization.'
-        url 'https://github.com/David402/google-play-service-gradle-plugin'
+        name POM_NAME
+        packaging POM_PACKAGING
+        description POM_DESCRIPTION
+        url POM_URL
         licenses {
             license {
-                name 'The Apache Software License, Version 2.0'
-                url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                distribution 'repo'
+                name POM_LICENCE_NAME
+                url POM_LICENCE_URL
+                distribution POM_LICENCE_DIST
             }
         }
         developers {
             developer {
-                id 'davidsw'
-                name 'David Liu'
-                email 'shaowei.liu@gmail.com'
+                id POM_DEVELOPER_ID
+                name POM_DEVELOPER_NAME
+                email POM_DEVELOPER_EMAIL
             }
         }
         scm {
-            connection 'scm:https://github.com/David402/google-play-service-gradle-plugin'
-            developerConnection 'scm:git@git@github.com:David402/google-play-service-gradle-plugin.git'
-            url 'scm:https://github.com/David402/google-play-service-gradle-plugin'
+            connection POM_SCM_CONNECTION
+            developerConnection POM_SCM_DEV_CONNECTION
+            url POM_SCM_URL
         }
     }
 }
 
 def isReleaseBuild() {
-    return VERSION_NAME.contains("SNAPSHOT") == false
+    return version.contains("SNAPSHOT") == false
+}
+
+
+def getRepositoryUsername() {
+    def sonatypeUsername = System.getenv("SONATYPE_USERNAME")
+    return sonatypeUsername ?: System.console().readLine("Sonatype Username: ")
+}
+
+def getRepositoryPassword() {
+    def sonatypePassword = System.getenv("SONATYPE_PASSWORD")
+    return sonatypePassword ?: System.console().readLine("Sonatype Password: ")
 }
