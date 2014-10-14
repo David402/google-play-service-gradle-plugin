@@ -89,6 +89,9 @@ afterEvaluate { project ->
             snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots/') {
                 authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
             }
+            pom.groupId = GROUP
+            pom.version = version
+            pom.artifactId = POM_ARTIFACT_ID
             pom.project(pomConfiguration)
         }
     }
