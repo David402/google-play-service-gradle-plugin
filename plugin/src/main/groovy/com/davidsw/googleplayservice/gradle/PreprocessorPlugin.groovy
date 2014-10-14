@@ -13,23 +13,22 @@ class PreprocessorPlugin implements Plugin<Project> {
     def GOOGLE_PLAY_SERVICES_VERSION
 
     def void apply(Project project) {
-        println "[Plugin] GooglePlayServicePreprocessorPlugin"
+        println "[Plugin] GooglePlayServicePlugin"
         EXPLODED_AAR_DIR = "${project.buildDir}/intermediates/exploded-aar"
         this.project = project
         playServices = project.extensions.create('playServices', PlayServicesDsl, project)
+        this.logger = project.getLogger()
 
         def stripTaskName = "stripPlayServices"
         project.configure(project) {
             if(it.hasProperty("android")) {
                 project.task(stripTaskName) << {
-//                    println "Prepare to execute stripPlayServices"
                     stripPlayServices()
                 }
-                tasks.whenTaskAdded { theTask ->
-                    if (theTask.name.startsWith('preDex')) {
-//                        println "found preDex task -> " + theTask.name
-                        theTask.dependsOn(stripTaskName)
-                    }
+
+                project.android.applicationVariants.all { variant ->
+                    println "compile${variant.name.capitalize()}Java.dependsOn(${stripTaskName})"
+                    tasks.getByPath("compile${variant.name.capitalize()}Java").dependsOn(stripTaskName)
                 }
             }
         }
@@ -45,8 +44,6 @@ class PreprocessorPlugin implements Plugin<Project> {
     private void stripPlayServices() {
         GOOGLE_PLAY_SERVICES_VERSION = playServices.getVersion();
         EXPLODED_PLAY_SERVICE_AAR_DIR = EXPLODED_AAR_DIR + "/" + GOOGLE_PLAY_SERVICES_NESTED_PATH + "/" + GOOGLE_PLAY_SERVICES_VERSION;
-//        println "EXPLODED_AAR_DIR: " + EXPLODED_AAR_DIR
-//        println "[Plugin StripPlayServices] run in ${EXPLODED_AAR_DIR}/${GOOGLE_PLAY_SERVICES_NESTED_PATH}/${GOOGLE_PLAY_SERVICES_VERSION}"
 
         unJar();
         removeUnselectedComponents();
@@ -65,12 +62,9 @@ class PreprocessorPlugin implements Plugin<Project> {
                 new File(tempDirPath + "/" + PLAY_SERVICES_FILENAME));
 
         // Extract archive
-//        println "Extracting archive, please wait.."
         ProcessBuilder pb = new ProcessBuilder("jar", "xf", "${PLAY_SERVICES_FILENAME}");
         pb.directory(new File(tempDirPath))
-        // println "[Plugin StripPlayServices] current working directory: " + pb.directory().absolutePath
         pb.start().waitFor()
-//        println "Extracted."
     }
 
     private void removeUnselectedComponents() {
@@ -82,7 +76,6 @@ class PreprocessorPlugin implements Plugin<Project> {
         } else {
             File[] files = tempDir.listFiles();
             for (File f : files) {
-                // println "file: " + f.getName();
                 if (!isSelectedCompoment(f.getName())) {
                     println f.getName() + " is removed."
                     deleteFile(f);
@@ -98,9 +91,7 @@ class PreprocessorPlugin implements Plugin<Project> {
         pb.start().waitFor();
 
         // delete old classes.jar and copy stripped one to destination
-//        println "delete " + EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + PLAY_SERVICES_FILENAME
         deleteFile(new File(EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + PLAY_SERVICES_FILENAME));
-//        println "copy from " + tempDirPath + "/" + PLAY_SERVICES_OUTPUT_FILE + " to " + EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + PLAY_SERVICES_FILENAME
         copyFile(new File(tempDirPath + "/" + PLAY_SERVICES_OUTPUT_FILE),
                 new File(EXPLODED_PLAY_SERVICE_AAR_DIR + "/" + PLAY_SERVICES_FILENAME));
     }
