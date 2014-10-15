@@ -17,7 +17,6 @@ class PreprocessorPlugin implements Plugin<Project> {
         EXPLODED_AAR_DIR = "${project.buildDir}/intermediates/exploded-aar"
         this.project = project
         playServices = project.extensions.create('playServices', PlayServicesDsl, project)
-        this.logger = project.getLogger()
 
         def stripTaskName = "stripPlayServices"
         project.configure(project) {
