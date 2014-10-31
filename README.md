@@ -21,7 +21,7 @@ buildscript {
   }
 
   dependencies {
-    classpath 'com.github.david402:playservice-plugin:0.0.8'
+    classpath 'com.github.david402:playservice-plugin:0.0.7'
   }
 }
 
